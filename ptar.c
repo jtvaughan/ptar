@@ -28,7 +28,7 @@
 
 #define	WRITE_BLOCKSIZE	4096
 
-#define SIGNATURE "###PTARv1###\n"
+#define SIGNATURE "###PTARv1###"
 
 static char linkpath[8192], verbose;
 static long openmax;
@@ -152,7 +152,7 @@ void write_error(void) {
 	exit(EXIT_FAILURE);
 }
 
-void printline(const char *line) {
+void write_line(const char *line) {
 	if (fprintf(stdout, "%s\n", line) < 0) {
 		write_error();
 	}
@@ -172,12 +172,6 @@ void write_numeric_metadata(const char *key, unsigned long long value) {
 
 void write_octal_metadata(const char *key, unsigned int value) {
 	if (fprintf(stdout, "%s:\t%.7o\n", key, value) < 0) {
-		write_error();
-	}
-}
-
-void write_sig(void) {
-	if (fprintf(stdout, SIGNATURE) < 0) {
 		write_error();
 	}
 }
@@ -497,7 +491,7 @@ int scan_archive(int (*onentry)(size_t)) {
 
   /* skip to the signature */
 	for (line = NULL, lineno = 1; (numread = getline(&line, &linecap, stdin)) != -1; lineno++) {
-    if (strcmp(line, SIGNATURE) == 0)
+    if (strcmp(line, SIGNATURE "\n") == 0)
       break;
   }
 
@@ -633,7 +627,7 @@ int listfiles(size_t lineno) {
 		(void) fprintf(stderr, "stdin:%zu: found an entry without a path\n", lineno);
 		return 1;
 	}
-	printline(fpath);
+	write_line(fpath);
 	if (ftype == REGULARFILE) {
 		for (numleft = fsize; numleft > 0; ) {
 			numread = fread(buffer, 1, numleft < sizeof (buffer) ? numleft : sizeof (buffer), stdin);
@@ -832,7 +826,7 @@ int main(int argc, char **argv) {
 			(void) fprintf(stderr, "error: current date and time are too large to fit in ptar's internal buffer\n");
 			exit(EXIT_FAILURE);
 		}
-    write_sig();
+    write_line(SIGNATURE);
 		write_metadata("Metadata Encoding", "utf-8");
 		write_metadata("Archive Creation Date", linkpath);
 		for (n++; !error && n < argc; n++) {
