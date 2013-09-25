@@ -72,7 +72,7 @@ char *safe_strdup(const char *s) {
 	return ret;
 }
 
-long open_max() {
+long open_max(void) {
 	if (openmax == 0) {
 		errno = 0;
 		if ((openmax = sysconf(_SC_OPEN_MAX)) < 0) {
@@ -152,7 +152,7 @@ int parsemetadata(char *line, char **key, char **value) {
 	return 1;
 }
 
-void write_error() {
+void write_error(void) {
 	(void) fprintf(stderr, "error: couldn't write to standard output: %s\n", strerror(errno));
 	exit(EXIT_FAILURE);
 }
@@ -181,13 +181,13 @@ void write_octal_metadata(const char *key, unsigned int value) {
 	}
 }
 
-void write_blank() {
+void write_blank(void) {
 	if (fputc('\n', stdout) == EOF) {
 		write_error();
 	}
 }
 
-void write_divider() {
+void write_divider(void) {
 	if (fputs("---\n", stdout) == EOF) {
 		write_error();
 	}
@@ -433,7 +433,7 @@ int handle_metadata(size_t lineno, char *key, char *value) {
 	return 0;
 }
 
-int is_invalid_metadata() {
+int is_invalid_metadata(void) {
 	if (!fpath) {
 		return 1;
 	}
@@ -469,7 +469,7 @@ int is_invalid_metadata() {
 	return !fuidgiven || !fgidgiven || !fusername || !fgroupname || !fmtimegiven || !fmodegiven;
 }
 
-void clear_metadata() {
+void clear_metadata(void) {
 	free(fpath);
 	fpath = NULL;
 	ftype = UNKNOWN;
@@ -762,7 +762,7 @@ int extract(size_t lineno) {
 	return 0;
 }
 
-void help() {
+void help(void) {
 	(void) fprintf(stdout,
 "Usage: ptar [-h] [OPTION ...] c|x|t [PATH ...]\n\n"
 

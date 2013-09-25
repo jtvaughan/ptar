@@ -19,20 +19,21 @@
 BINFILE = ptar
 
 # compilation flags
-CFLAGS = -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -O2 -g -Wall -Werror
+CFLAGS ?= -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -O2 -g -Wall -Werror
+CPPFLAGS ?=
 
 # the installation program (install(1))
-INSTALL = install
+INSTALL ?= install
 
 # the user and group for the installed binary
-INSTALL_USER = root
-INSTALL_GROUP = root
+INSTALL_USER ?= root
+INSTALL_GROUP ?= root
 
 # the installation prefix
-PREFIXDIR = /usr
+PREFIXDIR ?= /usr
 
 # the directory that will hold the installed binary
-BINDIR = $(PREFIXDIR)/bin
+BINDIR ?= $(PREFIXDIR)/bin
 
 # the name of the ptar archive that the 'dist' target builds
 DISTARCHIVE = $(BINFILE).ptar
@@ -57,7 +58,7 @@ options:
 	@echo
 
 .c.o:
-	$(CC) -c $(CFLAGS) $<
+	$(CC) -c $(CPPFLAGS) $(CFLAGS) $<
 
 $(BINFILE): $(OBJ)
 	$(CC) -o $@ $(OBJ) $(LDFLAGS)
