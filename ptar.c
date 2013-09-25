@@ -28,6 +28,8 @@
 
 #define	WRITE_BLOCKSIZE	4096
 
+#define SIGNATURE "###PTARv1###\n"
+
 static char linkpath[8192], verbose;
 static long openmax;
 
@@ -170,6 +172,12 @@ void write_numeric_metadata(const char *key, unsigned long long value) {
 
 void write_octal_metadata(const char *key, unsigned int value) {
 	if (fprintf(stdout, "%s:\t%.7o\n", key, value) < 0) {
+		write_error();
+	}
+}
+
+void write_sig(void) {
+	if (fprintf(stdout, SIGNATURE) < 0) {
 		write_error();
 	}
 }
@@ -487,8 +495,14 @@ int scan_archive(int (*onentry)(size_t)) {
 	ssize_t numread;
 	int state;
 
-	/* archive metadata first */
+  /* skip to the signature */
 	for (line = NULL, lineno = 1; (numread = getline(&line, &linecap, stdin)) != -1; lineno++) {
+    if (strcmp(line, SIGNATURE) == 0)
+      break;
+  }
+
+	/* archive metadata first */
+	for (; (numread = getline(&line, &linecap, stdin)) != -1; lineno++) {
 		if (parsemetadata(line, &key, &value) != 0) {
 			break;
 		}
@@ -818,6 +832,7 @@ int main(int argc, char **argv) {
 			(void) fprintf(stderr, "error: current date and time are too large to fit in ptar's internal buffer\n");
 			exit(EXIT_FAILURE);
 		}
+    write_sig();
 		write_metadata("Metadata Encoding", "utf-8");
 		write_metadata("Archive Creation Date", linkpath);
 		for (n++; !error && n < argc; n++) {
