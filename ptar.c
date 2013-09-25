@@ -28,7 +28,7 @@
 
 #define	WRITE_BLOCKSIZE	4096
 
-#define SIGNATURE "###PTARv1###"
+#define SIGNATURE "###PTARv0###"
 
 static char linkpath[8192], verbose;
 static long openmax;
