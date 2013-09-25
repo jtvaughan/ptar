@@ -27,5 +27,4 @@ fi
 
 set -x
 CFLAGS=${CFLAGS:--flto -O3 -g0}
-$CC $CFLAGS -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -I. -o $1/ptar ptar.c
-
+$CC $CPPFLAGS $CFLAGS -D_XOPEN_SOURCE=700 -D_BSD_SOURCE -I. -o $1/ptar ptar.c

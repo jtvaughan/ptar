@@ -8,10 +8,23 @@ Copyright:	Written in 2013 by Jordan Vaughan.  To the extent possible under law,
 # Introduction
 This is a detailed explanation of the plain text archive (ptar) format.
 
-# Metadata Format
-Metadata is plain text.  Archives begin with a block of archive metadata and are followed by zero or more file entries.
+# Signatures
+Archives begin with a signature
 
-Each piece of metadata occupies its own line and has two components: a key and a value.  Keys are case-insensitive and may contain letters, numbers, spaces, hyphens, and underscores, but each must begin with a letter or number, which must be the line’s first character.  Values may contain any character except NUL characters and newlines.  Programs that process plain text archives must strip keys of spaces and transform all key characters into their lowercase equivalents.  Thus “`File Size`”, “`F I L E si ze`”, and “`filesize`” are equivalent.  A key is separated from its value by a single colon character (`:`).
+> ###BEGIN PTARv*X*###
+
+where *X* stands for ptar format revision. (This document describes revision 0.)
+
+End of archive is denoted with a signature
+
+> ###END PTAR###
+
+Only the data between these signatures is processed.
+
+# Metadata Format
+Metadata is plain text.  Archive bodies begin with a block of archive metadata and are followed by zero or more file entries.
+
+Each piece of metadata occupies its own line and has two components: a key and a value.	Keys are case-insensitive and may contain letters, numbers, spaces, hyphens, and underscores, but each must begin with a letter or number, which must be the line’s first character.  Values may contain any character except NUL characters and newlines.  Programs that process plain text archives must strip keys of spaces and transform all key characters into their lowercase equivalents.  Thus “`File Size`”, “`F I L E si ze`”, and “`filesize`” are equivalent.  A key is separated from its value by a single colon character (`:`).
 
 Keys other than those specified below are illegal.
 

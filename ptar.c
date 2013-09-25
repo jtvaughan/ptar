@@ -28,6 +28,9 @@
 
 #define	WRITE_BLOCKSIZE	4096
 
+#define BEGIN_SIG0 "###BEGIN PTARv0###"
+#define END_SIG "###END PTAR###"
+
 static char linkpath[8192], verbose;
 static long openmax;
 
@@ -65,7 +68,7 @@ char *safe_strdup(const char *s) {
 	return ret;
 }
 
-long open_max() {
+long open_max(void) {
 	if (openmax == 0) {
 		errno = 0;
 		if ((openmax = sysconf(_SC_OPEN_MAX)) < 0) {
@@ -145,12 +148,12 @@ int parsemetadata(char *line, char **key, char **value) {
 	return 1;
 }
 
-void write_error() {
+void write_error(void) {
 	(void) fprintf(stderr, "error: couldn't write to standard output: %s\n", strerror(errno));
 	exit(EXIT_FAILURE);
 }
 
-void printline(const char *line) {
+void write_line(const char *line) {
 	if (fprintf(stdout, "%s\n", line) < 0) {
 		write_error();
 	}
@@ -174,13 +177,13 @@ void write_octal_metadata(const char *key, unsigned int value) {
 	}
 }
 
-void write_blank() {
+void write_blank(void) {
 	if (fputc('\n', stdout) == EOF) {
 		write_error();
 	}
 }
 
-void write_divider() {
+void write_divider(void) {
 	if (fputs("---\n", stdout) == EOF) {
 		write_error();
 	}
@@ -427,7 +430,7 @@ int handle_metadata(size_t lineno, char *key, char *value) {
 	return 0;
 }
 
-int is_invalid_metadata() {
+int is_invalid_metadata(void) {
 	if (!fpath) {
 		return 1;
 	}
@@ -463,7 +466,7 @@ int is_invalid_metadata() {
 	return !fuidgiven || !fgidgiven || !fusername || !fgroupname || !fmtimegiven || !fmodegiven;
 }
 
-void clear_metadata() {
+void clear_metadata(void) {
 	free(fpath);
 	fpath = NULL;
 	ftype = UNKNOWN;
@@ -487,8 +490,14 @@ int scan_archive(int (*onentry)(size_t)) {
 	ssize_t numread;
 	int state;
 
-	/* archive metadata first */
+	/* skip to the signature */
 	for (line = NULL, lineno = 1; (numread = getline(&line, &linecap, stdin)) != -1; lineno++) {
+		if (strcmp(line, BEGIN_SIG0 "\n") == 0)
+			break;
+	}
+
+	/* archive metadata first */
+	for (; (numread = getline(&line, &linecap, stdin)) != -1; lineno++) {
 		if (parsemetadata(line, &key, &value) != 0) {
 			break;
 		}
@@ -527,8 +536,12 @@ int scan_archive(int (*onentry)(size_t)) {
 		case SEEKING_METADATA:
 			if (parsemetadata(line, &key, &value) == 0) {
 				if (key == NULL) {
-					(void) fprintf(stderr, "stdin:%zu: invalid metadata key-value pair (missing key)\n", lineno);
-					return 1;
+					if (strcmp(value, END_SIG) == 0) {
+						return 0;
+					} else {
+						(void) fprintf(stderr, "stdin:%zu: invalid metadata key-value pair (missing key)\n", lineno);
+						return 1;
+					}
 				} else {
 					if (handle_metadata(lineno, key, value)) {
 						return 1;
@@ -619,7 +632,7 @@ int listfiles(size_t lineno) {
 		(void) fprintf(stderr, "stdin:%zu: found an entry without a path\n", lineno);
 		return 1;
 	}
-	printline(fpath);
+	write_line(fpath);
 	if (ftype == REGULARFILE) {
 		for (numleft = fsize; numleft > 0; ) {
 			numread = fread(buffer, 1, numleft < sizeof (buffer) ? numleft : sizeof (buffer), stdin);
@@ -724,40 +737,40 @@ int extract(size_t lineno) {
 	return 0;
 }
 
-void help() {
+void help(void) {
 	(void) fprintf(stdout,
 "Usage: ptar [-h] [OPTION ...] c|x|t [PATH ...]\n\n"
 
-"     Manipulate plain text archives that are similar to traditional tar(1)\n"
-"     files but are more human-readable.\n\n"
+"		 Manipulate plain text archives that are similar to traditional tar(1)\n"
+"		 files but are more human-readable.\n\n"
 
 "Commands:\n\n"
 
-"     c         Create a new archive and print its contents on standard\n"
-"               output.  The files whose PATHs are listed on the command\n"
-"               line will be added to the archive.\n\n"
+"		 c				 Create a new archive and print its contents on standard\n"
+"							 output.	The files whose PATHs are listed on the command\n"
+"							 line will be added to the archive.\n\n"
 
-"     x         Extract the contents of the archive from standard input\n"
-"               and write the contents to the file system relative to\n"
-"               the current working directory.\n\n"
+"		 x				 Extract the contents of the archive from standard input\n"
+"							 and write the contents to the file system relative to\n"
+"							 the current working directory.\n\n"
 
-"     t         List the PATHs stored in the archive from standard input.\n"
-"               This does not verify that file metadata is complete or\n"
-"               valid: It only prints Path values.\n\n"
+"		 t				 List the PATHs stored in the archive from standard input.\n"
+"							 This does not verify that file metadata is complete or\n"
+"							 valid: It only prints Path values.\n\n"
 
 "Options:\n\n"
 
-"     NOTE: Options must precede command letters.\n\n"
+"		 NOTE: Options must precede command letters.\n\n"
 
-"     -h                  synonym for -help\n"
-"     -help               Show this help message and exit.\n"
-"     -paths-from-stdin   Read PATHs to be archived from standard input, one\n"
-"                         PATH per line, after archiving PATHs specified on\n"
-"                         the command line.  (This only makes sense for the\n"
-"                         'c' command.)\n"
-"     -unbuffered         Disable standard output buffering.\n"
-"     -verbose            Verbose output: List PATHs added or extracted on\n"
-"                         standard error.\n\n");
+"		 -h									synonym for -help\n"
+"		 -help							 Show this help message and exit.\n"
+"		 -paths-from-stdin	 Read PATHs to be archived from standard input, one\n"
+"												 PATH per line, after archiving PATHs specified on\n"
+"												 the command line.	(This only makes sense for the\n"
+"												 'c' command.)\n"
+"		 -unbuffered				 Disable standard output buffering.\n"
+"		 -verbose						Verbose output: List PATHs added or extracted on\n"
+"												 standard error.\n\n");
 }
 
 int main(int argc, char **argv) {
@@ -818,6 +831,7 @@ int main(int argc, char **argv) {
 			(void) fprintf(stderr, "error: current date and time are too large to fit in ptar's internal buffer\n");
 			exit(EXIT_FAILURE);
 		}
+		write_line(BEGIN_SIG0);
 		write_metadata("Metadata Encoding", "utf-8");
 		write_metadata("Archive Creation Date", linkpath);
 		for (n++; !error && n < argc; n++) {
@@ -837,6 +851,7 @@ int main(int argc, char **argv) {
 				error = 1;
 			}
 		}
+		write_line(END_SIG);
 		break;
 	case 'x':
 		error = scan_archive(extract);
