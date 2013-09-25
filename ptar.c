@@ -28,7 +28,8 @@
 
 #define	WRITE_BLOCKSIZE	4096
 
-#define SIGNATURE "###PTARv0###"
+#define BEGIN_SIG0 "###BEGIN PTARv0###"
+#define END_SIG "###END PTAR###"
 
 static char linkpath[8192], verbose;
 static long openmax;
@@ -489,11 +490,11 @@ int scan_archive(int (*onentry)(size_t)) {
 	ssize_t numread;
 	int state;
 
-  /* skip to the signature */
+	/* skip to the signature */
 	for (line = NULL, lineno = 1; (numread = getline(&line, &linecap, stdin)) != -1; lineno++) {
-    if (strcmp(line, SIGNATURE "\n") == 0)
-      break;
-  }
+		if (strcmp(line, BEGIN_SIG0 "\n") == 0)
+			break;
+	}
 
 	/* archive metadata first */
 	for (; (numread = getline(&line, &linecap, stdin)) != -1; lineno++) {
@@ -535,8 +536,12 @@ int scan_archive(int (*onentry)(size_t)) {
 		case SEEKING_METADATA:
 			if (parsemetadata(line, &key, &value) == 0) {
 				if (key == NULL) {
-					(void) fprintf(stderr, "stdin:%zu: invalid metadata key-value pair (missing key)\n", lineno);
-					return 1;
+					if (strcmp(value, END_SIG) == 0) {
+						return 0;
+					} else {
+						(void) fprintf(stderr, "stdin:%zu: invalid metadata key-value pair (missing key)\n", lineno);
+						return 1;
+					}
 				} else {
 					if (handle_metadata(lineno, key, value)) {
 						return 1;
@@ -736,36 +741,36 @@ void help(void) {
 	(void) fprintf(stdout,
 "Usage: ptar [-h] [OPTION ...] c|x|t [PATH ...]\n\n"
 
-"     Manipulate plain text archives that are similar to traditional tar(1)\n"
-"     files but are more human-readable.\n\n"
+"		 Manipulate plain text archives that are similar to traditional tar(1)\n"
+"		 files but are more human-readable.\n\n"
 
 "Commands:\n\n"
 
-"     c         Create a new archive and print its contents on standard\n"
-"               output.  The files whose PATHs are listed on the command\n"
-"               line will be added to the archive.\n\n"
+"		 c				 Create a new archive and print its contents on standard\n"
+"							 output.	The files whose PATHs are listed on the command\n"
+"							 line will be added to the archive.\n\n"
 
-"     x         Extract the contents of the archive from standard input\n"
-"               and write the contents to the file system relative to\n"
-"               the current working directory.\n\n"
+"		 x				 Extract the contents of the archive from standard input\n"
+"							 and write the contents to the file system relative to\n"
+"							 the current working directory.\n\n"
 
-"     t         List the PATHs stored in the archive from standard input.\n"
-"               This does not verify that file metadata is complete or\n"
-"               valid: It only prints Path values.\n\n"
+"		 t				 List the PATHs stored in the archive from standard input.\n"
+"							 This does not verify that file metadata is complete or\n"
+"							 valid: It only prints Path values.\n\n"
 
 "Options:\n\n"
 
-"     NOTE: Options must precede command letters.\n\n"
+"		 NOTE: Options must precede command letters.\n\n"
 
-"     -h                  synonym for -help\n"
-"     -help               Show this help message and exit.\n"
-"     -paths-from-stdin   Read PATHs to be archived from standard input, one\n"
-"                         PATH per line, after archiving PATHs specified on\n"
-"                         the command line.  (This only makes sense for the\n"
-"                         'c' command.)\n"
-"     -unbuffered         Disable standard output buffering.\n"
-"     -verbose            Verbose output: List PATHs added or extracted on\n"
-"                         standard error.\n\n");
+"		 -h									synonym for -help\n"
+"		 -help							 Show this help message and exit.\n"
+"		 -paths-from-stdin	 Read PATHs to be archived from standard input, one\n"
+"												 PATH per line, after archiving PATHs specified on\n"
+"												 the command line.	(This only makes sense for the\n"
+"												 'c' command.)\n"
+"		 -unbuffered				 Disable standard output buffering.\n"
+"		 -verbose						Verbose output: List PATHs added or extracted on\n"
+"												 standard error.\n\n");
 }
 
 int main(int argc, char **argv) {
@@ -826,7 +831,7 @@ int main(int argc, char **argv) {
 			(void) fprintf(stderr, "error: current date and time are too large to fit in ptar's internal buffer\n");
 			exit(EXIT_FAILURE);
 		}
-    write_line(SIGNATURE);
+		write_line(BEGIN_SIG0);
 		write_metadata("Metadata Encoding", "utf-8");
 		write_metadata("Archive Creation Date", linkpath);
 		for (n++; !error && n < argc; n++) {
@@ -846,6 +851,7 @@ int main(int argc, char **argv) {
 				error = 1;
 			}
 		}
+		write_line(END_SIG);
 		break;
 	case 'x':
 		error = scan_archive(extract);
