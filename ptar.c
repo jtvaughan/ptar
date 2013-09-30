@@ -787,26 +787,29 @@ void help(void) {
 
 "     NOTE: Options must precede command letters.\n\n"
 
-"     -h, --help          Show this help message and exit.\n"
-"     --paths-from-stdin  Read PATHs to be archived from standard input, one\n"
-"                         PATH per line, after archiving PATHs specified on\n"
-"                         the command line.  (This only makes sense for the\n"
-"                         'c' command.)\n"
-"     -u, --unbuffered    Disable standard output buffering.\n"
-"     -v, --verbose       Verbose output: List PATHs added or extracted on\n"
-"                         standard error.\n\n");
+"     -h, --help              Show this help message and exit.\n"
+"     --paths-from-stdin      Read PATHs to be archived from standard input,\n"
+"                             one PATH per line, after archiving PATHs\n"
+"                             specified on the command line.  (This only\n"
+"                             makes sense for the 'c' command.)\n"
+"     -n, --archive-metadata  Don't write archive metadata.  (This only makes\n"
+"                             sense while adding files to already-existing\n"
+"                             archive using shell redirection.)\n"
+"     -u, --unbuffered        Disable standard output buffering.\n"
+"     -v, --verbose           Verbose output: List PATHs added or extracted\n"
+"                             on standard error.\n\n");
 }
 
 int main(int argc, char **argv) {
 	int error, n;
-	char *line, pathsfromstdin;
+	char *line, noheader, pathsfromstdin;
 	size_t linecap;
 	ssize_t numread;
 	time_t now;
 	struct tm *nowtm;
 	struct stat sb;
 
-	pathsfromstdin = 0;
+	pathsfromstdin = noheader = 0;
 	for (n = 1; n < argc; n++) {
 		if (strcmp(argv[n], "-h") == 0 || strcmp(argv[n], "--help") == 0) {
 			help();
@@ -827,6 +830,8 @@ int main(int argc, char **argv) {
 			}
 		} else if (strcmp(argv[n], "-v") == 0 || strcmp(argv[n], "--verbose") == 0) {
 			verbose = 1;
+		} else if (strcmp(argv[n], "-n") == 0 || strcmp(argv[n], "--no-header") == 0) {
+			noheader = 1;
 		} else if (n == argc) {
 			(void) fprintf(stderr, "error: no command given (specify -h for help)\n");
 			exit(EXIT_FAILURE);
@@ -855,8 +860,10 @@ int main(int argc, char **argv) {
 			(void) fprintf(stderr, "error: current date and time are too large to fit in ptar's internal buffer\n");
 			exit(EXIT_FAILURE);
 		}
-		write_metadata("Metadata Encoding", "utf-8");
-		write_metadata("Archive Creation Date", linkpath);
+		if (!noheader) {
+			write_metadata("Metadata Encoding", "utf-8");
+			write_metadata("Archive Creation Date", linkpath);
+		}
 		for (n++; !error && n < argc; n++) {
 			error = archive_file(argv[n]);
 		}
