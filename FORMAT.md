@@ -15,7 +15,7 @@ Each piece of metadata occupies its own line and has two components: a key and a
 
 Keys other than those specified below are illegal.
 
-# Standard Arhive Metadata Keys
+# Standard Archive Metadata Keys
 
 * `Metadata Encoding`: This specifies the archive’s metadata’s character encoding, which must be one of `utf-8` (Unicode octet encoding), `utf8` (a synonym for `utf-8`), or `ascii` (7-bit US-ASCII).  If this key is missing, then `utf-8` is assumed.
 * `Archive Creation Date`: This specifies the date the archive was created.  The format is arbitrary: It’s meant to be merely advisory.  However, a nice, standard format is `%Y-%m-%dT%H:%M:%SZ`, where `%Y` is the year, `%m` is the month (`00` to `12`), `%d` is the day of the month (`00` to `31`), `%H` is the hour (`00` to `23`), `%M` is the minute (`00` to `59`), and `%S` is the second (`00` to `60`, where `60` is for leap seconds).  In this case, the time is interpreted as Coordinated Universal Time (UTC; Zulu).  This key is not required.
